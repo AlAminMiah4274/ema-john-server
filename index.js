@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 require('dotenv').config();
@@ -27,11 +27,35 @@ async function run() {
         const productsCollection = client.db('emaJohn').collection('products');
 
         app.get('/products', async (req, res) => {
+            const page = parseInt(req.query.page);
+            const size = parseInt(req.query.size);
+            console.log(page, size);
+
             const query = {};
+            const cursor = productsCollection.find(query);
+            const products = await cursor.skip(page * size).limit(size).toArray();
+            const count = await productsCollection.estimatedDocumentCount();
+            res.send({ count, products });
+        });
+
+        // app.post('/productsByIds', async (req, res) => {
+        //     const ids = req.body;
+        //     const objectIds = ids.map(id => new ObjectId(id));
+        //     const query = { _id: { $in: objectIds } };
+        //     const cursor = productsCollection.find(query);
+        //     const products = await cursor.toArray();
+        //     res.send(products);
+        // });
+
+        app.post('/productsByIds', async (req, res) => {
+            const ids = req.body;
+            const objectIds = ids.map(id => new ObjectId(id));
+            const query = { _id: { $in: objectIds } };
             const cursor = productsCollection.find(query);
             const products = await cursor.toArray();
             res.send(products);
         });
+
     } finally {
         // Ensures that the client will close when you finish/error
     }
